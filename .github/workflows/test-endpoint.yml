@@ -12,7 +12,7 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-    # A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
   tests:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.9", "3.10", "3.11" ]
+        python-version: ["3.9", "3.10", "3.11"]
     services:
       # Label used to access the service container
       kafka:
@@ -28,11 +28,23 @@ jobs:
         image: bitnami/kafka:3.4
         # Provide the password for postgres
         env:
-          ALLOW_PLAINTEXT_LISTENER: "yes"
           KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+          # Kafka KRaft settings
+          KAFKA_CFG_NODE_ID: 0
+          KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+          KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka:9093"
+          # Listeners
+          KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+          KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://:9092"
+          KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+          KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+          KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
         # Set health checks to wait until postgres has started
         options: >-
-          --health-cmd "kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --describe" --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-cmd "kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --create --if-not-exists && kafka-topics.sh --bootstrap-server kafka:9092 --topic hc --describe"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
         ports:
           # Tests run directly on the runner so we have to map the port
           - 9092:9092
