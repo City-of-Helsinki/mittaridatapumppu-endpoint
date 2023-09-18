@@ -83,6 +83,5 @@ jobs:
           LOG_LEVEL: "DEBUG"
           DEBUG: 1
         run: |
-          uvicorn app:app --host 0.0.0.0 --port 8000 --proxy-headers &
-          sleep 10 &&
+          uvicorn app:app --host 0.0.0.0 --port 8000 --proxy-headers &&
           pytest -v tests/test_api.py
