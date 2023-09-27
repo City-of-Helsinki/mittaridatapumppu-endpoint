@@ -31,7 +31,7 @@ fastapi==0.103.1
     # via mittaridatapumppu-endpoint (pyproject.toml)
 flask==2.3.3
     # via fvhiot
-# fvhiot @ https://github.com/ForumViriumHelsinki/FVHIoT-python/archive/refs/tags/v0.3.1.zip
+fvhiot @ https://github.com/ForumViriumHelsinki/FVHIoT-python/archive/refs/tags/v0.3.2.zip
     # via mittaridatapumppu-endpoint (pyproject.toml)
 h11==0.14.0
     # via
@@ -62,9 +62,9 @@ msgpack==1.0.6
     # via fvhiot
 packaging==23.1
     # via aiokafka
-pydantic==2.3.0
+pydantic==2.4.1
     # via fastapi
-pydantic-core==2.6.3
+pydantic-core==2.10.1
     # via pydantic
 python-multipart==0.0.6
     # via mittaridatapumppu-endpoint (pyproject.toml)

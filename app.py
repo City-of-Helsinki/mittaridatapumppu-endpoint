@@ -1,16 +1,13 @@
 import importlib
 import logging
-import json
 import os
 import pprint
+
 import httpx
 from fastapi import FastAPI
 from fastapi.requests import Request
 from fastapi.responses import Response, PlainTextResponse, JSONResponse
 from fastapi.routing import APIRoute
-from sentry_asgi import SentryMiddleware
-
-from endpoints import AsyncRequestHandler as RequestHandler
 from fvhiot.utils import init_script
 from fvhiot.utils.aiokafka import (
     get_aiokafka_producer_by_envs,
@@ -19,14 +16,17 @@ from fvhiot.utils.aiokafka import (
 )
 from fvhiot.utils.data import data_pack
 from fvhiot.utils.http.starlettetools import extract_data_from_starlette_request
+from sentry_asgi import SentryMiddleware
 
-# TODO: for testing, add better defaults
-ENDPOINTS_URL = os.getenv("ENDPOINTS_URL", "http://127.0.0.1:8000/api/v1/hosts/localhost/")
-API_TOKEN = os.getenv("API_TOKEN", "abcdef1234567890abcdef1234567890abcdef12")
+from endpoints import AsyncRequestHandler as RequestHandler
+
+# TODO: for testing, add better defaults (or remove completely to make sure it is set in env)
+DEVREG_ENDPOINTS_URL = os.getenv("DEVREG_ENDPOINTS_URL", "http://127.0.0.1:8000/api/v1/hosts/localhost/")
+DEVREG_API_TOKEN = os.getenv("DEVREG_API_TOKEN", "abcdef1234567890abcdef1234567890abcdef12")
 
 device_registry_request_headers = {
-    "Authorization": f"Token {API_TOKEN}",
-    "User-Agent": "mittaridatapumppu-endpoint/0.0.1",
+    "Authorization": f"Token {DEVREG_API_TOKEN}",
+    "User-Agent": "mittaridatapumppu-endpoint/0.1.0",
     "Accept": "application/json",
 }
 
@@ -44,15 +44,15 @@ async def get_endpoints_from_device_registry(fail_on_error: bool) -> dict:
     # Create request to ENDPOINTS_URL and get data using httpx
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(ENDPOINTS_URL, headers=device_registry_request_headers)
+            response = await client.get(DEVREG_ENDPOINTS_URL, headers=device_registry_request_headers)
             if response.status_code == 200:
                 data = response.json()
-                logging.info(f"Got {len(data['endpoints'])} endpoints from device registry {ENDPOINTS_URL}")
+                logging.info(f"Got {len(data['endpoints'])} endpoints from device registry {DEVREG_ENDPOINTS_URL}")
             else:
-                logging.error(f"Failed to get endpoints from device registry {ENDPOINTS_URL}")
+                logging.error(f"Failed to get endpoints from device registry {DEVREG_ENDPOINTS_URL}")
                 return endpoints
         except Exception as e:
-            logging.error(f"Failed to get endpoints from device registry {ENDPOINTS_URL}: {e} ERSKA")
+            logging.error(f"Failed to get endpoints from device registry {DEVREG_ENDPOINTS_URL}: {e}")
             if fail_on_error:
                 raise e
     for endpoint in data["endpoints"]:

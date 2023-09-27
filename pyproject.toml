@@ -15,7 +15,7 @@ dynamic = ["version"]
 dependencies = [
   "aiokafka",
   "fastapi",
-  "fvhiot@https://github.com/ForumViriumHelsinki/FVHIoT-python/archive/refs/tags/v0.3.1.zip",
+  "fvhiot@https://github.com/ForumViriumHelsinki/FVHIoT-python/archive/refs/tags/v0.3.2.zip",
   "httpx",
   "kafka-python",
   "python-multipart",
