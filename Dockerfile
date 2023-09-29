@@ -18,5 +18,5 @@ RUN chgrp -R 0 /home/app && \
 
 USER app
 
-CMD ["/home/app/.local/bin/uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
 EXPOSE 8000/tcp
