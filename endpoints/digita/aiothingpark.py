@@ -51,7 +51,6 @@ class RequestHandler(AsyncRequestHandler):
         device_id = request_data["request"]["get"].get("LrnDevEui")
         if device_id:  # a LrnDevEui must be present to send the data to Kafka topic
             topic_name = endpoint_data["kafka_raw_data_topic"]
-            # topic_name = os.getenv("KAFKA_RAW_DATA_TOPIC_NAME")
         else:
             topic_name = None
         logging.info("Validation: {}, {}, {}".format(auth_ok, response_message, status_code))
