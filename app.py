@@ -112,7 +112,7 @@ async def api_v2(request: Request, endpoint: dict) -> Response:
     print("REMOVE ME", auth_ok, device_id, topic_name, response_message, status_code)
     # We assume device data is valid here
     logging.debug(pprint.pformat(request_data))
-    if topic_name:
+    if auth_ok and topic_name:
         if app.producer:
             logging.info(f'Sending path "{path}" data to {topic_name}')
             packed_data = data_pack(request_data)
