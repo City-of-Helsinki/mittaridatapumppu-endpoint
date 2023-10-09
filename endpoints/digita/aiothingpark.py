@@ -2,12 +2,13 @@ import logging
 import os
 from typing import Tuple, Union
 
-from .. import AsyncRequestHandler, is_ip_address_allowed
+from .. import AsyncRequestHandler
 
 
 class RequestHandler(AsyncRequestHandler):
-    @staticmethod
-    async def validate(request_data: dict, endpoint_data: dict) -> Tuple[bool, Union[str, None], Union[int, None]]:
+    async def validate(
+        self, request_data: dict, endpoint_data: dict
+    ) -> Tuple[bool, Union[str, None], Union[int, None]]:
         """
         Use Starlette request_data here to determine should we accept or reject
         this request
@@ -15,26 +16,10 @@ class RequestHandler(AsyncRequestHandler):
         :param endpoint_data: endpoint data from device registry
         :return: (bool ok, str error text, int status code)
         """
-        # Reject requests not matching the one defined in env
-        if request_data["path"] != endpoint_data["endpoint_path"]:
-            return False, "Not found", 404
-        # Reject requests without token parameter, which can be in query string or http header
-        api_key = request_data["request"]["get"].get("x-api-key")
-        if api_key is None:
-            api_key = request_data["request"]["headers"].get("x-api-key")
-        if api_key is None or api_key != endpoint_data["auth_token"]:
-            logging.warning("Missing or invalid authentication token (x-api-key)")
-            return False, "Missing or invalid authentication token, see logs for error", 401
-        logging.info("Authentication token validated")
-        if request_data["request"]["get"].get("test") == "true":
-            logging.info("Test ok")
-            return False, "Test OK", 400
-        allowed_ip_addresses = endpoint_data.get("allowed_ip_addresses", "")
-        if allowed_ip_addresses == "":
-            logging.warning("Set 'allowed_ip_addresses' in endpoint settings to restrict requests unknown sources")
-        else:
-            if is_ip_address_allowed(request_data, allowed_ip_addresses) is False:
-                return False, "IP address not allowed", 403
+        [status_ok, response_message, status_code] = await super().validate(request_data, endpoint_data)
+
+        if status_ok is False:
+            return False, response_message, status_code
 
         if request_data["request"]["get"].get("LrnDevEui") is None:
             logging.warning("LrnDevEui not found in request params")
