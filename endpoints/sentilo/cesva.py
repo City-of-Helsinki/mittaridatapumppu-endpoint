@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Tuple, Union
+import json
 
 from .. import AsyncRequestHandler
 
@@ -21,11 +22,13 @@ class RequestHandler(AsyncRequestHandler):
         if status_ok is False:
             return False, response_message, status_code
 
-        if request_data["request"]["get"].get("LrnDevEui") is None:
-            logging.warning("LrnDevEui not found in request params")
-            return False, "Invalid arguments, see logs for error", 400
-        else:
+        try:
+            # check if device id can be extracted
+            json.loads(request_data["request"]["body"].decode("utf-8"))["sensors"][0]["sensor"][0:-2]
             return True, "Request accepted", 202
+        except Exception:
+            logging.warning("unable to retreive device_id from request body")
+            return False, "Invalid request, see logs for error", 400
 
     async def process_request(
         self,
@@ -33,12 +36,14 @@ class RequestHandler(AsyncRequestHandler):
         endpoint_data: dict,
     ) -> Tuple[bool, str, Union[str, None], Union[str, dict, list], int]:
         auth_ok, response_message, status_code = await self.validate(request_data, endpoint_data)
-        device_id = request_data["request"]["get"].get("LrnDevEui")
-        if device_id:  # a LrnDevEui must be present to send the data to Kafka topic
+
+        logging.info("Validation: {}, {}, {}".format(auth_ok, response_message, status_code))
+        if auth_ok:
+            device_id = json.loads(request_data["request"]["body"].decode("utf-8"))["sensors"][0]["sensor"][0:-2]
             topic_name = endpoint_data["kafka_raw_data_topic"]
         else:
+            device_id = None
             topic_name = None
-        logging.info("Validation: {}, {}, {}".format(auth_ok, response_message, status_code))
         return auth_ok, device_id, topic_name, response_message, status_code
 
     async def get_metadata(self, request_data: dict, device_id: str) -> str:
