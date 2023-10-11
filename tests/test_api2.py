@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime, timedelta, timezone
-
+import json
 import httpx
 
 logging.basicConfig(level=logging.INFO)
@@ -94,7 +94,7 @@ def test_digita_endppoint_authenticated_access():
     # Replace Time with ~current time
     ts = (datetime.now(timezone.utc) - timedelta(seconds=1)).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
     payload["DevEUI_uplink"]["Time"] = ts
-    resp = httpx.post(url, headers=headers, params=params, data=payload)
+    resp = httpx.post(url, headers=headers, params=params, data=json.dumps(payload))
     logging.info(resp.text)
     assert resp.status_code in [200, 201, 202], "message forwarded"
     params["x-api-key"] = "wrong"

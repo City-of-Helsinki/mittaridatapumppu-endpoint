@@ -110,6 +110,8 @@ async def api_v2(request: Request, endpoint: dict) -> Response:
     )
     response_message = str(response_message)
     print("REMOVE ME", auth_ok, device_id, topic_name, response_message, status_code)
+    # add extracted device id to request data before pushing to kafka raw data topic
+    request_data["device_id"] = device_id
     # We assume device data is valid here
     logging.debug(pprint.pformat(request_data))
     if auth_ok and topic_name:
