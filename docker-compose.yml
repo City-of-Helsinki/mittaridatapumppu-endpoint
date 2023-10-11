@@ -3,7 +3,7 @@
 version: '3.8'
 
 services:
-  endpoint-digita:
+  endpoint:
     image: ghcr.io/city-of-helsinki/mittaridatapumppu-endpoint
     build: .
     ports:
@@ -12,21 +12,13 @@ services:
       kafka:
         condition: service_healthy
     environment:
-      # Endpoint config
-      ALLOWED_IP_ADDRESSES: "127.0.0.1"
-      AUTH_TOKEN: "abcd1234"
-      DATA_SOURCE_NAME: "digita.thingpark.http"
-      ENDPOINT_PATH: "/digita/v2"
-      HTTP_REQUESTHANDLER: "endpoints.digita.aiothingpark"
+      DEVREG_ENDPOINTS_URL: "http://devreg:8000/api/v1/hosts/localhost/"
+      DEVREG_API_TOKEN: "abcdef1234567890abcdef1234567890abcdef12"
       # Kafka client config
-      KAFKA_HOST: "kafka"
-      KAFKA_PORT: 9092
       KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-      KAFKA_GROUP_ID: "digita_dev"
-      KAFKA_PARSED_DATA_TOPIC_NAME: "digita.parseddata"
-      KAFKA_RAW_DATA_TOPIC_NAME: "digita.rawdata"
       # Debug config
-      LOG_LEVEL: "DEBUG"
+      UVICORN_LOG_LEVEL: "debug"
+      UVICORN_RELOAD: "true"
       DEBUG: 1
   kafka:
     image: bitnami/kafka:3.4
