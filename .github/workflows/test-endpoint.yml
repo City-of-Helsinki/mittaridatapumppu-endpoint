@@ -23,6 +23,19 @@ jobs:
         python-version: ["3.10", "3.11"]
     services:
       # Label used to access the service container
+      db:
+        # Docker Hub image
+        image: postgis/postgis:16-3.4-alpine
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      # Label used to access the service container
       kafka:
         # Docker Hub image
         image: bitnami/kafka:3.4
@@ -48,6 +61,13 @@ jobs:
         ports:
           # Tests run directly on the runner so we have to map the port
           - 9092:9092
+      deviceregistry:
+        image: ghcr.io/city-of-helsinki/mittaridatapumppu-deviceregistry:latest
+        env:
+          DJANGO_SETTINGS_MODULE: "deviceregistry.settings"
+        ports:
+          - 8001:8000
+        # TODO:run migrations here
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -68,13 +88,12 @@ jobs:
           ruff check --output-format=github .
       - name: Test with pytest
         env:
-          PYTEST_ADDOPTS: "--color=yes"
-          AUTH_TOKEN: "abcd1234"
-          KAFKA_HOST: "localhost"
-          KAFKA_PORT: 9092
+          DEVREG_ENDPOINTS_URL: "http://localhost:8001/api/v1/hosts/localhost/"
+          DEVREG_API_TOKEN: "abcdef1234567890abcdef1234567890abcdef12"
+          # Kafka client config
           KAFKA_BOOTSTRAP_SERVERS: "localhost:9092"
-          LOG_LEVEL: "DEBUG"
+          UVICORN_LOG_LEVEL: "DEBUG"
           DEBUG: 1
         run: |
           uvicorn app:app --host 0.0.0.0 --port 8000 --proxy-headers &&
-          pytest -v tests/test_api.py
+          pytest
