@@ -21,11 +21,11 @@ from sentry_asgi import SentryMiddleware
 from endpoints import AsyncRequestHandler as RequestHandler
 
 # TODO: for testing, add better defaults (or remove completely to make sure it is set in env)
-DEVREG_ENDPOINTS_URL = os.getenv("DEVREG_ENDPOINTS_URL", "http://127.0.0.1:8000/api/v1/hosts/localhost/")
-DEVREG_API_TOKEN = os.getenv("DEVREG_API_TOKEN", "abcdef1234567890abcdef1234567890abcdef12")
+ENDPOINT_CONFIG_URL = os.getenv("ENDPOINT_CONFIG_URL", "http://127.0.0.1:8000/api/v1/hosts/localhost/")
+DEVICE_REGISTRY_TOKEN = os.getenv("DEVICE_REGISTRY_TOKEN", "abcdef1234567890abcdef1234567890abcdef12")
 
 device_registry_request_headers = {
-    "Authorization": f"Token {DEVREG_API_TOKEN}",
+    "Authorization": f"Token {DEVICE_REGISTRY_TOKEN}",
     "User-Agent": "mittaridatapumppu-endpoint/0.1.0",
     "Accept": "application/json",
 }
@@ -44,15 +44,15 @@ async def get_endpoints_from_device_registry(fail_on_error: bool) -> dict:
     # Create request to ENDPOINTS_URL and get data using httpx
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(DEVREG_ENDPOINTS_URL, headers=device_registry_request_headers)
+            response = await client.get(ENDPOINT_CONFIG_URL, headers=device_registry_request_headers)
             if response.status_code == 200:
                 data = response.json()
-                logging.info(f"Got {len(data['endpoints'])} endpoints from device registry {DEVREG_ENDPOINTS_URL}")
+                logging.info(f"Got {len(data['endpoints'])} endpoints from device registry {ENDPOINT_CONFIG_URL}")
             else:
-                logging.error(f"Failed to get endpoints from device registry {DEVREG_ENDPOINTS_URL}")
+                logging.error(f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}")
                 return endpoints
         except Exception as e:
-            logging.error(f"Failed to get endpoints from device registry {DEVREG_ENDPOINTS_URL}: {e}")
+            logging.error(f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}: {e}")
             if fail_on_error:
                 raise e
     for endpoint in data["endpoints"]:
