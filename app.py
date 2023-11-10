@@ -99,7 +99,8 @@ async def trigger_error(_request: Request) -> Response:
 async def api_v2(request: Request, endpoint: dict) -> Response:
     request_data = await extract_data_from_starlette_request(request)  # data validation done here
     # TODO : remove
-    logging.error(request_data)
+    # DONE
+    # logging.error(request_data)
     if request_data.get("extra"):
         logging.warning(f"RequestModel contains extra values: {request_data['extra']}")
     if request_data["request"].get("extra"):
