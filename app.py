@@ -21,8 +21,12 @@ from sentry_asgi import SentryMiddleware
 from endpoints import AsyncRequestHandler as RequestHandler
 
 # TODO: for testing, add better defaults (or remove completely to make sure it is set in env)
-ENDPOINT_CONFIG_URL = os.getenv("ENDPOINT_CONFIG_URL", "http://127.0.0.1:8000/api/v1/hosts/localhost/")
-DEVICE_REGISTRY_TOKEN = os.getenv("DEVICE_REGISTRY_TOKEN", "abcdef1234567890abcdef1234567890abcdef12")
+ENDPOINT_CONFIG_URL = os.getenv(
+    "ENDPOINT_CONFIG_URL", "http://127.0.0.1:8000/api/v1/hosts/localhost/"
+)
+DEVICE_REGISTRY_TOKEN = os.getenv(
+    "DEVICE_REGISTRY_TOKEN", "abcdef1234567890abcdef1234567890abcdef12"
+)
 
 device_registry_request_headers = {
     "Authorization": f"Token {DEVICE_REGISTRY_TOKEN}",
@@ -44,22 +48,34 @@ async def get_endpoints_from_device_registry(fail_on_error: bool) -> dict:
     # Create request to ENDPOINTS_URL and get data using httpx
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(ENDPOINT_CONFIG_URL, headers=device_registry_request_headers)
+            response = await client.get(
+                ENDPOINT_CONFIG_URL, headers=device_registry_request_headers
+            )
             if response.status_code == 200:
                 data = response.json()
-                logging.info(f"Got {len(data['endpoints'])} endpoints from device registry {ENDPOINT_CONFIG_URL}")
+                logging.info(
+                    f"Got {len(data['endpoints'])} endpoints from device registry {ENDPOINT_CONFIG_URL}"
+                )
             else:
-                logging.error(f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}")
+                logging.error(
+                    f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}"
+                )
                 return endpoints
         except Exception as e:
-            logging.error(f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}: {e}")
+            logging.error(
+                f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}: {e}"
+            )
             if fail_on_error:
                 raise e
     for endpoint in data["endpoints"]:
         # Import requesthandler module. It must exist in python path.
         try:
-            request_handler_module = importlib.import_module(endpoint["http_request_handler"])
-            request_handler_function: RequestHandler = request_handler_module.RequestHandler()
+            request_handler_module = importlib.import_module(
+                endpoint["http_request_handler"]
+            )
+            request_handler_function: RequestHandler = (
+                request_handler_module.RequestHandler()
+            )
             endpoint["request_handler"] = request_handler_function
             logging.info(f"Imported {endpoint['http_request_handler']}")
         except ImportError as e:
@@ -97,18 +113,22 @@ async def trigger_error(_request: Request) -> Response:
 
 
 async def api_v2(request: Request, endpoint: dict) -> Response:
-    request_data = await extract_data_from_starlette_request(request)  # data validation done here
+    request_data = await extract_data_from_starlette_request(
+        request
+    )  # data validation done here
     # TODO : remove
     # DONE
     # logging.error(request_data)
     if request_data.get("extra"):
         logging.warning(f"RequestModel contains extra values: {request_data['extra']}")
     if request_data["request"].get("extra"):
-        logging.warning(f"RequestData contains extra values: {request_data['request']['extra']}")
+        logging.warning(
+            f"RequestData contains extra values: {request_data['request']['extra']}"
+        )
     path = request_data["path"]
-    (auth_ok, device_id, topic_name, response_message, status_code) = await endpoint["request_handler"].process_request(
-        request_data, endpoint
-    )
+    (auth_ok, device_id, topic_name, response_message, status_code) = await endpoint[
+        "request_handler"
+    ].process_request(request_data, endpoint)
     response_message = str(response_message)
     print("REMOVE ME", auth_ok, device_id, topic_name, response_message, status_code)
     # add extracted device id to request data before pushing to kafka raw data topic
@@ -130,7 +150,10 @@ async def api_v2(request: Request, endpoint: dict) -> Response:
                 f'Failed to send "{path}" data to {topic_name}, producer was not initialised even we had a topic name'
             )
             # Endpoint process has failed and no data was sent to Kafka. This is a fatal error.
-            response_message, status_code = "Internal server error, see logs for details", 500
+            response_message, status_code = (
+                "Internal server error, see logs for details",
+                500,
+            )
     else:
         logging.info("No action: topic_name is not defined")
 
@@ -165,7 +188,11 @@ async def startup():
     except Exception as e:
         logging.error(f"Failed to create KafkaProducer: {e}")
         app.producer = None
-    logging.info("Ready to go, listening to endpoints: {}".format(", ".join(app.endpoints.keys())))
+    logging.info(
+        "Ready to go, listening to endpoints: {}".format(
+            ", ".join(app.endpoints.keys())
+        )
+    )
 
 
 async def shutdown():
@@ -184,7 +211,11 @@ routes = [
     APIRoute("/readiness", endpoint=readiness, methods=["GET", "HEAD"]),
     APIRoute("/healthz", endpoint=healthz, methods=["GET", "HEAD"]),
     APIRoute("/debug-sentry", endpoint=trigger_error, methods=["GET", "HEAD"]),
-    APIRoute("/{full_path:path}", endpoint=catch_all, methods=["HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"]),
+    APIRoute(
+        "/{full_path:path}",
+        endpoint=catch_all,
+        methods=["HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"],
+    ),
 ]
 
 

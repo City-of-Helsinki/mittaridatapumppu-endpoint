@@ -15,10 +15,22 @@ PARAMS = {"x-api-key": API_TOKEN}
 # Body
 PAYLOAD = {
     "sensors": [
-        {"sensor": "TA120-T246187-N", "observations": [{"value": "61.2", "timestamp": "24/02/2022T17:45:15UTC"}]},
-        {"sensor": "TA120-T246187-O", "observations": [{"value": "false", "timestamp": "24/02/2022T17:45:15UTC"}]},
-        {"sensor": "TA120-T246187-U", "observations": [{"value": "false", "timestamp": "24/02/2022T17:45:15UTC"}]},
-        {"sensor": "TA120-T246187-M", "observations": [{"value": "77", "timestamp": "24/02/2022T17:45:15UTC"}]},
+        {
+            "sensor": "TA120-T246187-N",
+            "observations": [{"value": "61.2", "timestamp": "24/02/2022T17:45:15UTC"}],
+        },
+        {
+            "sensor": "TA120-T246187-O",
+            "observations": [{"value": "false", "timestamp": "24/02/2022T17:45:15UTC"}],
+        },
+        {
+            "sensor": "TA120-T246187-U",
+            "observations": [{"value": "false", "timestamp": "24/02/2022T17:45:15UTC"}],
+        },
+        {
+            "sensor": "TA120-T246187-M",
+            "observations": [{"value": "77", "timestamp": "24/02/2022T17:45:15UTC"}],
+        },
         {
             "sensor": "TA120-T246187-S",
             "observations": [

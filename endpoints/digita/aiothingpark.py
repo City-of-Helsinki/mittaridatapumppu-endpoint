@@ -16,7 +16,9 @@ class RequestHandler(AsyncRequestHandler):
         :param endpoint_data: endpoint data from device registry
         :return: (bool ok, str error text, int status code)
         """
-        [status_ok, response_message, status_code] = await super().validate(request_data, endpoint_data)
+        [status_ok, response_message, status_code] = await super().validate(
+            request_data, endpoint_data
+        )
 
         if status_ok is False:
             return False, response_message, status_code
@@ -32,13 +34,17 @@ class RequestHandler(AsyncRequestHandler):
         request_data: dict,
         endpoint_data: dict,
     ) -> Tuple[bool, str, Union[str, None], Union[str, dict, list], int]:
-        auth_ok, response_message, status_code = await self.validate(request_data, endpoint_data)
+        auth_ok, response_message, status_code = await self.validate(
+            request_data, endpoint_data
+        )
         device_id = request_data["request"]["get"].get("LrnDevEui")
         if device_id:  # a LrnDevEui must be present to send the data to Kafka topic
             topic_name = endpoint_data["kafka_raw_data_topic"]
         else:
             topic_name = None
-        logging.info("Validation: {}, {}, {}".format(auth_ok, response_message, status_code))
+        logging.info(
+            "Validation: {}, {}, {}".format(auth_ok, response_message, status_code)
+        )
         return auth_ok, device_id, topic_name, response_message, status_code
 
     async def get_metadata(self, request_data: dict, device_id: str) -> str:

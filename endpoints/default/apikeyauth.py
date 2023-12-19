@@ -27,7 +27,9 @@ class RequestHandler(AsyncRequestHandler):
         Just do minimal validation for request_data and
         return ok if token was valid.
         """
-        auth_ok, response_message, status_code = await self.validate(request_data, endpoint_data)
+        auth_ok, response_message, status_code = await self.validate(
+            request_data, endpoint_data
+        )
         if auth_ok:
             topic_name = endpoint_data["kafka_raw_data_topic"]
             response_message = "Request OK"

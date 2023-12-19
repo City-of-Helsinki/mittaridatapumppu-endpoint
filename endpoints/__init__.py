@@ -28,12 +28,17 @@ def is_ip_address_allowed(request_data: dict, allowed_ip_addresses: str):
             r_ip = request_data["request"]["headers"].get("x-real-ip")
             if (
                 r_ip
-                and ipaddress.ip_address(request_data["request"]["headers"].get("x-real-ip", "")) in allowed_network
+                and ipaddress.ip_address(
+                    request_data["request"]["headers"].get("x-real-ip", "")
+                )
+                in allowed_network
             ):
                 log_match("x-real-ip", r_ip, allowed_network)
                 return True
 
-            forwarded_for_ips = request_data["request"]["headers"].get("x-forwarded-for", "").split(",")
+            forwarded_for_ips = (
+                request_data["request"]["headers"].get("x-forwarded-for", "").split(",")
+            )
             for r_ip in forwarded_for_ips:
                 r_ip = r_ip.strip()
                 if a_ip:
@@ -73,14 +78,20 @@ class AsyncRequestHandler(abc.ABC):
             api_key = request_data["request"]["headers"].get("x-api-key")
         if api_key is None or api_key != endpoint_data["auth_token"]:
             logging.warning("Missing or invalid authentication token (x-api-key)")
-            return False, "Missing or invalid authentication token, see logs for error", 401
+            return (
+                False,
+                "Missing or invalid authentication token, see logs for error",
+                401,
+            )
         logging.info("Authentication token validated")
         if request_data["request"]["get"].get("test") == "true":
             logging.info("Test ok")
             return False, "Test OK", 400
         allowed_ip_addresses = endpoint_data.get("allowed_ip_addresses", "")
         if allowed_ip_addresses == "":
-            logging.warning("Set 'allowed_ip_addresses' in endpoint settings to restrict requests unknown sources")
+            logging.warning(
+                "Set 'allowed_ip_addresses' in endpoint settings to restrict requests unknown sources"
+            )
         else:
             if is_ip_address_allowed(request_data, allowed_ip_addresses) is False:
                 return False, "IP address not allowed", 403

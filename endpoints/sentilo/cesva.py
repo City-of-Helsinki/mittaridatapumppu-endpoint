@@ -17,14 +17,18 @@ class RequestHandler(AsyncRequestHandler):
         :param endpoint_data: endpoint data from device registry
         :return: (bool ok, str error text, int status code)
         """
-        [status_ok, response_message, status_code] = await super().validate(request_data, endpoint_data)
+        [status_ok, response_message, status_code] = await super().validate(
+            request_data, endpoint_data
+        )
 
         if status_ok is False:
             return False, response_message, status_code
 
         try:
             # check if device id can be extracted
-            json.loads(request_data["request"]["body"].decode("utf-8"))["sensors"][0]["sensor"][0:-2]
+            json.loads(request_data["request"]["body"].decode("utf-8"))["sensors"][0][
+                "sensor"
+            ][0:-2]
             return True, "Request accepted", 202
         except Exception:
             logging.warning("unable to retreive device_id from request body")
@@ -35,11 +39,17 @@ class RequestHandler(AsyncRequestHandler):
         request_data: dict,
         endpoint_data: dict,
     ) -> Tuple[bool, str, Union[str, None], Union[str, dict, list], int]:
-        auth_ok, response_message, status_code = await self.validate(request_data, endpoint_data)
+        auth_ok, response_message, status_code = await self.validate(
+            request_data, endpoint_data
+        )
 
-        logging.info("Validation: {}, {}, {}".format(auth_ok, response_message, status_code))
+        logging.info(
+            "Validation: {}, {}, {}".format(auth_ok, response_message, status_code)
+        )
         if auth_ok:
-            device_id = json.loads(request_data["request"]["body"].decode("utf-8"))["sensors"][0]["sensor"][0:-2]
+            device_id = json.loads(request_data["request"]["body"].decode("utf-8"))[
+                "sensors"
+            ][0]["sensor"][0:-2]
             topic_name = endpoint_data["kafka_raw_data_topic"]
         else:
             device_id = None
