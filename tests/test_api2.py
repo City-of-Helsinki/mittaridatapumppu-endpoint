@@ -82,7 +82,9 @@ def test_digita_endpoint_up():
     url = f"{API_BASE_URL}/api/v1/digita"
     resp = httpx.get(url)
     assert resp.status_code == 401, "digita v1 is up"
-    assert resp.text.startswith("Missing or invalid authentication token"), "digita v1 is up"
+    assert resp.text.startswith(
+        "Missing or invalid authentication token"
+    ), "digita v1 is up"
 
 
 def test_digita_endppoint_authenticated_access():
@@ -91,7 +93,9 @@ def test_digita_endppoint_authenticated_access():
     params = THINGPARK_PARAMS.copy()
     payload = THINGPARK_PAYLOAD.copy()
     # Replace Time with ~current time
-    ts = (datetime.now(timezone.utc) - timedelta(seconds=1)).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+    ts = (datetime.now(timezone.utc) - timedelta(seconds=1)).strftime(
+        "%Y-%m-%dT%H:%M:%S.%f%z"
+    )
     payload["DevEUI_uplink"]["Time"] = ts
     resp = httpx.post(url, headers=headers, params=params, data=payload)
     logging.info(resp.text)

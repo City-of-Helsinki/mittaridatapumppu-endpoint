@@ -1,6 +1,3 @@
-[tool.setuptools]
-py-modules = []
-
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
@@ -14,12 +11,10 @@ name = "mittaridatapumppu-endpoint"
 description = ""
 readme = "README.md"
 requires-python = ">=3.10"
-dynamic = ["version"]
-
+version  = "v0.1.0"
 dependencies = [
-  "aiokafka",
   "fastapi",
-  "fvhiot@https://github.com/ForumViriumHelsinki/FVHIoT-python/archive/refs/tags/v0.3.2.zip",
+  "fvhiot[kafka]@https://github.com/ForumViriumHelsinki/FVHIoT-python/archive/refs/tags/v0.4.1.zip",
   "httpx",
   "kafka-python",
   "python-multipart",
