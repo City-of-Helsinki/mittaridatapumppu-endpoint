@@ -42,6 +42,13 @@ dev = [
   "pytest-cov",
 ]
 test = [
-    "pytest",
-    "requests"
-] #pip-compile --resolver=backtracking --extra test pyproject.toml
+  "ruff",
+  "pytest",
+  "requests"
+]
+
+[tool.pytest.ini_options]
+log_cli = 1
+log_cli_level = 20
+testpaths = ["tests"]
+addopts = ["--color=yes"]
