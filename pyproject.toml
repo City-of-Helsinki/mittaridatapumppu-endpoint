@@ -1,20 +1,25 @@
 [build-system]
-requires = ["setuptools"]
+requires = [
+    "setuptools>=60",
+    "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_file = "endpoint/_version.py"
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+select = ["E", "F", "B", "Q"]
 
 [project]
 name = "mittaridatapumppu-endpoint"
-description = ""
+description = "A FastAPI app that receives sensor data in POST requests and produces them to Kafka."
 readme = "README.md"
 requires-python = ">=3.10"
-version  = "v0.1.0"
+dynamic = ["version"]
 dependencies = [
   "fastapi",
-  "fvhiot[kafka]@https://github.com/ForumViriumHelsinki/FVHIoT-python/archive/refs/tags/v0.4.1.zip",
+  "fvhiot[kafka]@https://github.com/ForumViriumHelsinki/FVHIoT-python/releases/download/v1.0.1/FVHIoT-1.0.1-py3-none-any.whl",
   "httpx",
   "kafka-python",
   "python-multipart",
