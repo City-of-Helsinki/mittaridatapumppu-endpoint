@@ -26,7 +26,6 @@ dependencies = [
 dev = [
   "autoflake",
   "autopep8",
-  "black",
   "flake8",
   "gunicorn",
   "isort",
