@@ -27,5 +27,6 @@ RUN chgrp -R 0 /home/app && \
 
 USER app
 
-CMD ["uvicorn", "endpoint:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+HEALTHCHECK CMD wget --no-verbose --tries=1 --spider localhost:8000/healthz || exit
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
 EXPOSE 8000/tcp

@@ -56,6 +56,7 @@ class AsyncRequestHandler(abc.ABC):
     Async version of BaseRequestHandler, compatible with Starlette, FastAPI and Device registry.
     """
 
+    @abc.abstractmethod
     def __init__(self):
         pass
 

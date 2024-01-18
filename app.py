@@ -2,23 +2,25 @@ import importlib
 import logging
 import os
 import pprint
+from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI
 from fastapi.requests import Request
-from fastapi.responses import Response, PlainTextResponse, JSONResponse
-from fastapi.routing import APIRoute
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from fvhiot.utils import init_script
-from fvhiot.utils.aiokafka import (
-    get_aiokafka_producer_by_envs,
-    on_send_success,
-    on_send_error,
-)
+from fvhiot.utils.aiokafka import (get_aiokafka_producer_by_envs,
+                                   on_send_error, on_send_success)
 from fvhiot.utils.data import data_pack
-from fvhiot.utils.http.starlettetools import extract_data_from_starlette_request
+from fvhiot.utils.http.starlettetools import \
+    extract_data_from_starlette_request
 from sentry_asgi import SentryMiddleware
 
 from endpoints import AsyncRequestHandler as RequestHandler
+
+app_producer = None
+app_endpoints = {}
+init_script()
 
 # TODO: for testing, add better defaults (or remove completely to make sure it is set in env)
 ENDPOINT_CONFIG_URL = os.getenv(
@@ -33,6 +35,39 @@ device_registry_request_headers = {
     "User-Agent": "mittaridatapumppu-endpoint/0.1.0",
     "Accept": "application/json",
 }
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Get endpoints from Device registry and create KafkaProducer .
+    # TODO: Test external connections here, e.g. device registry, redis etc. and crash if some mandatory
+    # service is missing.
+    global app_endpoints
+    global app_producer
+    endpoints = await get_endpoints_from_device_registry(True)
+    logging.debug("\n" + pprint.pformat(endpoints))
+    if endpoints:
+        app_endpoints = endpoints
+    try:
+        app_producer = await get_aiokafka_producer_by_envs()
+    except Exception as e:
+        logging.error(f"Failed to create KafkaProducer: {e}")
+        app_producer = None
+    logging.info(
+        "Ready to go, listening to endpoints: {}".format(
+            ", ".join(endpoints.keys())
+        )
+    )
+    yield
+
+    # Close KafkaProducer and other connections.
+    logging.info("Shutdown, close connections")
+    if app_producer:
+        await app_producer.stop()
+
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(SentryMiddleware)
 
 
 def get_full_path(request: Request) -> str:
@@ -79,40 +114,51 @@ async def get_endpoints_from_device_registry(fail_on_error: bool) -> dict:
             endpoint["request_handler"] = request_handler_function
             logging.info(f"Imported {endpoint['http_request_handler']}")
         except ImportError as e:
-            logging.error(f"Failed to import {endpoint['http_request_handler']}: {e}")
+            logging.error(
+                f"Failed to import {endpoint['http_request_handler']}: {e}")
         endpoints[endpoint["endpoint_path"]] = endpoint
     return endpoints
 
 
+@app.get("/")
 async def root(_request: Request) -> Response:
     return JSONResponse({"message": "Test ok"})
 
 
+@app.get("/notify")
 async def notify(_request: Request) -> Response:
-    global app
+    global app_endpoints
     endpoints = await get_endpoints_from_device_registry(False)
     logging.debug("Got endpoints:\n" + pprint.pformat(endpoints))
     endpoint_count = len(endpoints)
     if endpoints:
-        logging.info(f"Got {endpoint_count} endpoints from device registry in notify")
-        app.endpoints = endpoints
+        logging.info(
+            f"Got {endpoint_count} endpoints from device registry in notify")
+        app_endpoints = endpoints
     return PlainTextResponse(f"OK ({endpoint_count})")
 
 
+@app.get("/readiness")
+@app.head("/readiness")
 async def readiness(_request: Request) -> Response:
     return PlainTextResponse("OK")
 
 
-async def healthz(_request: Request) -> Response:
+@app.get("/liveness")
+@app.head("/liveness")
+async def liveness(_request: Request) -> Response:
     return PlainTextResponse("OK")
 
 
+@app.get("/debug-sentry")
+@app.head("/debug-sentry")
 async def trigger_error(_request: Request) -> Response:
     _ = 1 / 0
     return PlainTextResponse("Shouldn't reach this")
 
 
 async def api_v2(request: Request, endpoint: dict) -> Response:
+    global app_producer
     request_data = await extract_data_from_starlette_request(
         request
     )  # data validation done here
@@ -120,7 +166,8 @@ async def api_v2(request: Request, endpoint: dict) -> Response:
     # DONE
     # logging.error(request_data)
     if request_data.get("extra"):
-        logging.warning(f"RequestModel contains extra values: {request_data['extra']}")
+        logging.warning(
+            f"RequestModel contains extra values: {request_data['extra']}")
     if request_data["request"].get("extra"):
         logging.warning(
             f"RequestData contains extra values: {request_data['request']['extra']}"
@@ -136,12 +183,12 @@ async def api_v2(request: Request, endpoint: dict) -> Response:
     # We assume device data is valid here
     logging.debug(pprint.pformat(request_data))
     if auth_ok and topic_name:
-        if app.producer:
+        if app_producer:
             logging.info(f'Sending path "{path}" data to {topic_name}')
             packed_data = data_pack(request_data)
             logging.debug(packed_data[:1000])
             try:
-                res = await app.producer.send_and_wait(topic_name, value=packed_data)
+                res = await app_producer.send_and_wait(topic_name, value=packed_data)
                 on_send_success(res)
             except Exception as e:
                 on_send_error(e)
@@ -160,75 +207,22 @@ async def api_v2(request: Request, endpoint: dict) -> Response:
     return PlainTextResponse(response_message, status_code=status_code or 200)
 
 
+@app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "HEAD", "DELETE", "PATCH"])
 async def catch_all(request: Request) -> Response:
     """Catch all requests (except static paths) and route them to correct request handlers."""
+    global app_endpoints
     full_path = get_full_path(request)
-    # print(full_path, app.endpoints.keys())
-    if full_path in app.endpoints:
-        endpoint = app.endpoints[full_path]
+    # print(full_path, app_endpoints.keys())
+    if full_path in app_endpoints:
+        endpoint = app_endpoints[full_path]
         response = await api_v2(request, endpoint)
         return response
     else:  # return 404
         return PlainTextResponse("Not found: " + full_path, status_code=404)
 
 
-async def startup():
-    """
-    Get endpoints from Device registry and create KafkaProducer .
-    TODO: Test external connections here, e.g. device registry, redis etc. and crash if some mandatory
-    service is missing.
-    """
-    global app
-    endpoints = await get_endpoints_from_device_registry(True)
-    logging.debug("\n" + pprint.pformat(endpoints))
-    if endpoints:
-        app.endpoints = endpoints
-    try:
-        app.producer = await get_aiokafka_producer_by_envs()
-    except Exception as e:
-        logging.error(f"Failed to create KafkaProducer: {e}")
-        app.producer = None
-    logging.info(
-        "Ready to go, listening to endpoints: {}".format(
-            ", ".join(app.endpoints.keys())
-        )
-    )
-
-
-async def shutdown():
-    """
-    Close KafkaProducer and other connections.
-    """
-    global app
-    logging.info("Shutdown, close connections")
-    if app.producer:
-        await app.producer.stop()
-
-
-routes = [
-    APIRoute("/", endpoint=root),
-    APIRoute("/notify", endpoint=notify, methods=["GET"]),
-    APIRoute("/readiness", endpoint=readiness, methods=["GET", "HEAD"]),
-    APIRoute("/healthz", endpoint=healthz, methods=["GET", "HEAD"]),
-    APIRoute("/debug-sentry", endpoint=trigger_error, methods=["GET", "HEAD"]),
-    APIRoute(
-        "/{full_path:path}",
-        endpoint=catch_all,
-        methods=["HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"],
-    ),
-]
-
-
-init_script()
-debug = True if os.getenv("DEBUG") else False
-app = FastAPI(debug=debug, routes=routes, on_startup=[startup], on_shutdown=[shutdown])
-app.producer = None
-app.endpoints = {}
-app.add_middleware(SentryMiddleware)
-
 # This part is for debugging / PyCharm debugger
 # See https://fastapi.tiangolo.com/tutorial/debugging/
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8002)
