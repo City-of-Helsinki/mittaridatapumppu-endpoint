@@ -5,7 +5,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-version_file = "endpoint/_version.py"
+version_file = "_version.py"
 
 [tool.ruff]
 line-length = 120
