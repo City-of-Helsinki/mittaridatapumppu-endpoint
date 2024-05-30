@@ -2,13 +2,13 @@ import importlib
 import logging
 import os
 import pprint
+import json
 from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
-from fvhiot.utils import init_script
 from fvhiot.utils.aiokafka import (get_aiokafka_producer_by_envs,
                                    on_send_error, on_send_success)
 from fvhiot.utils.data import data_pack
@@ -20,7 +20,6 @@ from endpoints import AsyncRequestHandler as RequestHandler
 
 app_producer = None
 app_endpoints = {}
-init_script()
 
 # TODO: for testing, add better defaults (or remove completely to make sure it is set in env)
 ENDPOINT_CONFIG_URL = os.getenv(
@@ -80,29 +79,35 @@ async def get_endpoints_from_device_registry(fail_on_error: bool) -> dict:
     Update endpoints from device registry. This is done on startup and when device registry is updated.
     """
     endpoints = {}
-    # Create request to ENDPOINTS_URL and get data using httpx
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(
-                ENDPOINT_CONFIG_URL, headers=device_registry_request_headers
-            )
-            if response.status_code == 200:
-                data = response.json()
-                logging.info(
-                    f"Got {len(data['endpoints'])} endpoints from device registry {ENDPOINT_CONFIG_URL}"
+    data = {}
+    if ENDPOINT_CONFIG_URL.startswith("http"):
+        # Create request to ENDPOINTS_URL and get data using httpx
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(
+                    ENDPOINT_CONFIG_URL, headers=device_registry_request_headers
                 )
-            else:
+                if response.status_code == 200:
+                    data = response.json()
+                    logging.info(
+                        f"Got {len(data['endpoints'])} endpoints from device registry {ENDPOINT_CONFIG_URL}"
+                    )
+                else:
+                    logging.error(
+                        f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}"
+                    )
+                    return endpoints
+            except Exception as e:
                 logging.error(
-                    f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}"
+                    f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}: {e}"
                 )
-                return endpoints
-        except Exception as e:
-            logging.error(
-                f"Failed to get endpoints from device registry {ENDPOINT_CONFIG_URL}: {e}"
-            )
-            if fail_on_error:
-                raise e
+                if fail_on_error:
+                    raise e
+    else:
+        with open(ENDPOINT_CONFIG_URL, "r") as file:
+            return json.loads(file.read())
     for endpoint in data["endpoints"]:
+        logging.debug(f"{endpoint}")
         # Import requesthandler module. It must exist in python path.
         try:
             request_handler_module = importlib.import_module(
@@ -177,7 +182,8 @@ async def api_v2(request: Request, endpoint: dict) -> Response:
         "request_handler"
     ].process_request(request_data, endpoint)
     response_message = str(response_message)
-    print("REMOVE ME", auth_ok, device_id, topic_name, response_message, status_code)
+    print("REMOVE ME", auth_ok, device_id,
+          topic_name, response_message, status_code)
     # add extracted device id to request data before pushing to kafka raw data topic
     request_data["device_id"] = device_id
     # We assume device data is valid here
@@ -185,7 +191,7 @@ async def api_v2(request: Request, endpoint: dict) -> Response:
     if auth_ok and topic_name:
         if app_producer:
             logging.info(f'Sending path "{path}" data to {topic_name}')
-            packed_data = data_pack(request_data)
+            packed_data = data_pack(request_data) or {}
             logging.debug(packed_data[:1000])
             try:
                 res = await app_producer.send_and_wait(topic_name, value=packed_data)

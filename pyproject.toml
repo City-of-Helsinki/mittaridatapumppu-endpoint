@@ -5,7 +5,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-version_file = "_version.py"
+version_file = "endpoint/_version.py"
 
 [tool.ruff]
 line-length = 120
@@ -15,16 +15,16 @@ select = ["E", "F", "B", "Q"]
 name = "mittaridatapumppu-endpoint"
 description = "A FastAPI app that receives sensor data in POST requests and produces them to Kafka."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dynamic = ["version"]
 dependencies = [
-  "fastapi",
-  "fvhiot[kafka]@https://github.com/ForumViriumHelsinki/FVHIoT-python/releases/download/v1.0.1/FVHIoT-1.0.1-py3-none-any.whl",
-  "httpx",
-  "kafka-python",
-  "python-multipart",
-  "sentry-asgi",
-  "uvicorn",
+  "fastapi ~= 0.105",
+  "fvhiot[kafka]@https://github.com/ForumViriumHelsinki/FVHIoT-python/releases/download/v1.0.2/FVHIoT-1.0.2-py3-none-any.whl",
+  "httpx ~= 0.25",
+  "kafka-python ~= 2.0",
+  "python-multipart ~= 0.0.6",
+  "sentry-asgi ~= 0.2",
+  "uvicorn ~= 0.24",
 ]
 
 [project.optional-dependencies]
@@ -37,14 +37,13 @@ dev = [
   "pep8-naming",
   "pre-commit",
   "pydantic",
-  "pytest",
-  "pytest-asyncio",
-  "pytest-cov",
 ]
 test = [
   "ruff",
-  "pytest",
-  "requests"
+  "pytest ~= 7.4",
+  "requests",
+  "pytest-asyncio",
+  "pytest-cov",
 ]
 
 [tool.pytest.ini_options]

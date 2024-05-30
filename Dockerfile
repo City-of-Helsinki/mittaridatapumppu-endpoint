@@ -19,7 +19,8 @@ RUN apk add --no-cache \
 COPY --chown=app:app requirements.txt .
 RUN pip install --no-cache-dir --no-compile --upgrade -r requirements.txt
 
-COPY --chown=app:app . .
+COPY --chown=app:app endpoint/ ./endpoint
+COPY --chown=app:app endpoints/ ./endpoints
 
 # Support Arbitrary User IDs
 RUN chgrp -R 0 /home/app && \
@@ -27,6 +28,6 @@ RUN chgrp -R 0 /home/app && \
 
 USER app
 
-HEALTHCHECK CMD wget --no-verbose --tries=1 --spider localhost:8000/healthz || exit
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+HEALTHCHECK CMD wget --no-verbose --tries=1 --spider localhost:8000/liveness || exit
+CMD ["uvicorn", "endpoint.endpoint:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
 EXPOSE 8000/tcp

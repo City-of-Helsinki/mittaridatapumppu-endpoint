@@ -70,11 +70,10 @@ jobs:
         env:
           PYTEST_ADDOPTS: "--color=yes"
           AUTH_TOKEN: "abcd1234"
-          KAFKA_HOST: "localhost"
-          KAFKA_PORT: 9092
           KAFKA_BOOTSTRAP_SERVERS: "localhost:9092"
-          LOG_LEVEL: "DEBUG"
+          UVICORN_LOG_LEVEL: "debug"
+          ENDPOINT_CONFIG_URL: "tests/endpoint_config"
           DEBUG: 1
         run: |
           uvicorn app:app --host 0.0.0.0 --port 8000 --proxy-headers &&
-          pytest -v tests/test_api.py
+          pytest
