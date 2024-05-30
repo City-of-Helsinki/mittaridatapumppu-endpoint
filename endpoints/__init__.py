@@ -1,5 +1,4 @@
 import abc
-
 import ipaddress
 import logging
 import os
@@ -57,9 +56,6 @@ class AsyncRequestHandler(abc.ABC):
     """
 
     @abc.abstractmethod
-    def __init__(self):
-        pass
-
     async def validate(
         self, request_data: dict, endpoint_data: dict
     ) -> Tuple[bool, Union[str, None], Union[int, None]]:

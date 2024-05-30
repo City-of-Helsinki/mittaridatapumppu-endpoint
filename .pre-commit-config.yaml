@@ -9,18 +9,3 @@ repos:
     rev: 'v0.1.8'
     hooks:
       - id: ruff
-  - repo: https://github.com/jazzband/pip-tools
-    rev: 7.3.0
-    hooks:
-      - id: pip-compile
-        name: pip-compile requirements.txt
-        args: [--strip-extras, --output-file=requirements.txt]
-        files: ^(pyproject\.toml|requirements\.txt)$
-      - id: pip-compile
-        name: pip-compile requirements-test.txt
-        args: [--extra=test, --strip-extras, --output-file=requirements-test.txt]
-        files: ^(pyproject\.toml|requirements-test\.txt)$
-      - id: pip-compile
-        name: pip-compile requirements-dev.txt
-        args: [--extra=dev, --strip-extras, --output-file=requirements-dev.txt]
-        files: ^(pyproject\.toml|requirements-dev\.txt)$
